@@ -234,9 +234,9 @@ void* thread_put_non_bloccante_buffer_unitario_vuoto(msg_t* messaggio_da_inserir
 
 void test_produzione_concorrente_bloccante_molteplici_messaggi_buffer_vuoto(){
     pthread_t produttore1, produttore2, produttore3;
-    msg_t * messaggio1 =  msg_init("produttore1");;
-    msg_t * messaggio2 =  msg_init("produttore1");;
-    msg_t * messaggio3 =  msg_init("produttore1");;
+    msg_t * messaggio1 =  msg_init("produttore1");
+    msg_t * messaggio2 =  msg_init("produttore2");
+    msg_t * messaggio3 =  msg_init("produttore3");
     msg_t * risposta1 = NULL;
 
     pthread_create(&produttore1, NULL, (void*)&thread_put_bloccante_buffer_unitario_vuoto, messaggio1);
@@ -437,6 +437,8 @@ void test_produzione_consumazione_concorrente_bloccante_molteplici_messaggi_buff
 }
 /*(P>1; C>1; N>1) Consumazioni e produzioni concorrenti di molteplici messaggi in un buffer VERSIONE NON BLOCCANTE*/
 void test_produzione_consumazione_concorrente_non_bloccante_molteplici_messaggi_buffer_non_unitario_vuoto(){
+    clean_buffer_non_unitario_vuoto();
+    setup_buffer_non_unitario_vuoto();
     pthread_t produttore1,produttore2,consumatore1,consumatore2;
     msg_t* messaggio1 = msg_init("produttore1");
     msg_t* messaggio2 = msg_init("produttore2");
