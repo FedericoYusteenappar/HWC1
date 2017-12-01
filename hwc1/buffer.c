@@ -38,7 +38,7 @@ void buffer_destroy(buffer_t* buffer){
 }
 
 msg_t* put_bloccante(buffer_t* buffer, msg_t* msg){
-    msg_t* copy = msg_copy(msg);
+    msg_t* copy = msg_copy_string(msg);
     pthread_mutex_lock(&buffer->service);
     while(buffer->k == buffer->maxsize){
         pthread_cond_wait(&buffer->not_full,&buffer->service);
@@ -63,7 +63,7 @@ msg_t* put_non_bloccante(buffer_t* buffer, msg_t* msg){
     }
     else{
         pthread_mutex_lock(&(buffer->uso_d));
-        buffer->array[buffer->index_d] = msg_copy(msg);
+        buffer->array[buffer->index_d] = msg_copy_string(msg);
         buffer->index_d = (buffer->index_d +1)%(buffer->maxsize);
         buffer->k++;
         pthread_mutex_unlock(&(buffer->uso_d));

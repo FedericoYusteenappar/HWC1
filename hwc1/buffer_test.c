@@ -27,7 +27,7 @@ int setup_buffer_unitario_pieno(void){
     buffer_unitario_pieno = buffer_init(1);
     
     if(buffer_unitario_pieno!= NULL){
-        msg_t* msg = msg_init(messaggio);
+        msg_t* msg = msg_init_string(messaggio);
         buffer_unitario_pieno->array[buffer_unitario_pieno->index_d] = msg;
         buffer_unitario_pieno->index_d = (buffer_unitario_pieno->index_d)%(buffer_unitario_pieno->maxsize);
         buffer_unitario_pieno->k = 1;
@@ -78,7 +78,7 @@ void* thread_non_put_bloccante_buffer_non_unitario_vuoto(msg_t* messaggio_da_ins
 void test_produzione_non_bloccante_buffer_unitario_vuoto(){
     clean_buffer_unitario_vuoto();
     setup_buffer_unitario_vuoto();
-    msg_t* messaggio_da_inserire = msg_init("prima_produzione");
+    msg_t* messaggio_da_inserire = msg_init_string("prima_produzione");
     msg_t* messaggio_ritornato = put_non_bloccante(buffer_unitario_vuoto, messaggio_da_inserire);
     CU_ASSERT_EQUAL(buffer_unitario_vuoto->k, buffer_unitario_vuoto->maxsize);
     CU_ASSERT_STRING_EQUAL(messaggio_ritornato->content,messaggio_da_inserire->content);
@@ -86,7 +86,7 @@ void test_produzione_non_bloccante_buffer_unitario_vuoto(){
 
 /* (P=1; C=0; N=1) Produzione di un solo messaggio in un buffer vuoto VERSIONE BLOCCANTE*/
 void test_produzione_bloccante_buffer_unitario_vuoto(){
-    msg_t* messaggio_da_inserire = msg_init("prova");
+    msg_t* messaggio_da_inserire = msg_init_string("prova");
     msg_t* messaggio_ritornato = put_bloccante(buffer_unitario_vuoto, messaggio_da_inserire);
     CU_ASSERT_EQUAL(buffer_unitario_vuoto->k, buffer_unitario_vuoto->maxsize);
     CU_ASSERT_STRING_EQUAL(messaggio_da_inserire->content,messaggio_ritornato->content);
@@ -115,13 +115,12 @@ void test_consumazione_non_bloccante_buffer_unitario_pieno(){
 void test_produzione_non_bloccante_buffer_unitario_pieno() {
    
     setup_buffer_unitario_pieno();
-    msg_t* messaggio_inserito = msg_init("salve");
+    msg_t* messaggio_inserito = msg_init_string("salve");
     msg_t* messaggio_ritornato = put_non_bloccante(buffer_unitario_pieno, messaggio_inserito);
     CU_ASSERT_EQUAL(buffer_unitario_pieno->k, buffer_unitario_pieno->maxsize);
     CU_ASSERT_PTR_NOT_EQUAL(messaggio_ritornato,messaggio_inserito->content);
     CU_ASSERT_PTR_EQUAL(messaggio_ritornato, BUFFER_ERROR);
-    msg_destroy(messaggio_inserito);
-    msg_destroy(messaggio_ritornato);
+    msg_destroy_string(messaggio_inserito);
     
 }
 
@@ -131,14 +130,14 @@ void* thread_put_bloccante(msg_t* messaggio_da_inserire){
     return (void*)messaggio;
 }
 void test_produzione_bloccante_buffer_unitario_pieno(){
-    msg_t* msg_da_inserire = msg_init("buonasera");
+    msg_t* msg_da_inserire = msg_init_string("buonasera");
     pthread_t produttore;
     pthread_create(&produttore, NULL, (void*)&thread_put_bloccante, msg_da_inserire);
     sleep(5);
     CU_ASSERT_EQUAL(buffer_unitario_pieno->k, buffer_unitario_pieno->maxsize);
     CU_ASSERT_PTR_NOT_EQUAL(buffer_unitario_pieno->array[0]->content,msg_da_inserire->content);
     pthread_kill(produttore, 0);
-    msg_destroy(msg_da_inserire);
+    msg_destroy_string(msg_da_inserire);
 }
 /* (P=0; C=1; N=1) Consumazione di un solo messaggio da un buffer vuoto VERSIONE NON BLOCCANTE*/
 void test_consumazione_non_bloccante_buffer_unitario_vuoto(){
@@ -155,7 +154,7 @@ void* thread_get_bloccante(buffer_t* buffer){
 
 void test_consumazione_bloccante_buffer_unitario_vuoto(){
     pthread_t consumatore,produttore;
-    msg_t* GO_MSG = msg_init("messaggio");
+    msg_t* GO_MSG = msg_init_string("messaggio");
     msg_t* messaggio_letto = NULL;
     pthread_create(&consumatore, NULL, (void*)&thread_get_bloccante, buffer_unitario_vuoto);
     sleep(5);
@@ -163,14 +162,14 @@ void test_consumazione_bloccante_buffer_unitario_vuoto(){
     pthread_join(consumatore, (void*)&messaggio_letto);
     CU_ASSERT_EQUAL(buffer_unitario_vuoto->k, 0);
     CU_ASSERT_STRING_EQUAL (GO_MSG->content,messaggio_letto->content);
-    msg_destroy(GO_MSG);
+    msg_destroy_string(GO_MSG);
     
 }
 
 
 /*(P=1; C=1; N=1) Consumazione e produzione concorrente di un messaggio da un buffer unitario; prima il consumatore  VERSIONE BLOCCANTE*/
 static void setup_consumazione_produzione_buffer_unitario(msg_t **messaggio_da_inserire, msg_t **messaggio_letto_dal_consumatore, msg_t **messaggio_ritornato_al_produttore) {
-    *messaggio_da_inserire = msg_init("produzione");
+    *messaggio_da_inserire = msg_init_string("produzione");
     *messaggio_letto_dal_consumatore = NULL;
     *messaggio_ritornato_al_produttore = NULL;
 }
@@ -186,7 +185,6 @@ void test_consumazione_produzione_concorrente_bloccante_buffer_unitario_prima_co
     sleep(5);
     pthread_create(&produttore, NULL, (void*)&thread_put_bloccante, messaggio_da_inserire);
     pthread_join(produttore,(void*)&messaggio_ritornato_al_produttore);
-    sleep(3);
     
     CU_ASSERT_EQUAL(buffer_unitario_pieno->k, 1);
     CU_ASSERT_STRING_EQUAL(messaggio_ritornato_al_produttore->content,buffer_unitario_pieno->array[0]->content);
@@ -216,8 +214,6 @@ void test_consumazione_produzione_concorrente_non_bloccante_buffer_unitario_prim
     sleep(5);
     pthread_create(&produttore, NULL, (void*)&thread_put_non_bloccante, messaggio_da_inserire);
     pthread_join(produttore,(void*)&messaggio_ritornato_al_produttore);
-    sleep(3);
-    
     CU_ASSERT_EQUAL(buffer_unitario_pieno->k, 1);
     CU_ASSERT_STRING_EQUAL(messaggio_ritornato_al_produttore->content,buffer_unitario_pieno->array[0]->content);
     pthread_kill(consumatore, 0);
@@ -234,9 +230,9 @@ void* thread_put_non_bloccante_buffer_unitario_vuoto(msg_t* messaggio_da_inserir
 
 void test_produzione_concorrente_bloccante_molteplici_messaggi_buffer_vuoto(){
     pthread_t produttore1, produttore2, produttore3;
-    msg_t * messaggio1 =  msg_init("produttore1");
-    msg_t * messaggio2 =  msg_init("produttore2");
-    msg_t * messaggio3 =  msg_init("produttore3");
+    msg_t * messaggio1 =  msg_init_string("produttore1");
+    msg_t * messaggio2 =  msg_init_string("produttore2");
+    msg_t * messaggio3 =  msg_init_string("produttore3");
     msg_t * risposta1 = NULL;
 
     pthread_create(&produttore1, NULL, (void*)&thread_put_bloccante_buffer_unitario_vuoto, messaggio1);
@@ -246,9 +242,9 @@ void test_produzione_concorrente_bloccante_molteplici_messaggi_buffer_vuoto(){
     pthread_join(produttore1, (void*)&risposta1);
     CU_ASSERT_EQUAL(buffer_unitario_vuoto->k, 1);
     CU_ASSERT_STRING_EQUAL(risposta1->content,buffer_unitario_vuoto->array[0]->content);
-    msg_destroy(messaggio1);
-    msg_destroy(messaggio2);
-    msg_destroy(messaggio3);
+    msg_destroy_string(messaggio1);
+    msg_destroy_string(messaggio2);
+    msg_destroy_string(messaggio3);
     pthread_kill(produttore2, 0);
     pthread_kill(produttore3, 0);
     
@@ -258,9 +254,9 @@ void test_produzione_concorrente_non_bloccante_molteplici_messaggi_buffer_vuoto(
     clean_buffer_unitario_vuoto();
     setup_buffer_unitario_vuoto();
     pthread_t produttore1, produttore2, produttore3;
-    msg_t * messaggio1 =  msg_init("produttore1");;
-    msg_t * messaggio2 =  msg_init("produttore2");;
-    msg_t * messaggio3 =  msg_init("produttore3");;
+    msg_t * messaggio1 =  msg_init_string("produttore1");;
+    msg_t * messaggio2 =  msg_init_string("produttore2");;
+    msg_t * messaggio3 =  msg_init_string("produttore3");;
     msg_t * risposta1;
     msg_t * risposta2;
     msg_t * risposta3;
@@ -278,18 +274,18 @@ void test_produzione_concorrente_non_bloccante_molteplici_messaggi_buffer_vuoto(
     CU_ASSERT_PTR_EQUAL(risposta2, BUFFER_ERROR);
     CU_ASSERT_PTR_EQUAL(risposta3, BUFFER_ERROR);
     
-    msg_destroy(messaggio1);
-    msg_destroy(messaggio2);
-    msg_destroy(messaggio3);
+    msg_destroy_string(messaggio1);
+    msg_destroy_string(messaggio2);
+    msg_destroy_string(messaggio3);
     
 }
 
 int setup_buffer_non_unitario_pieno(){
     buffer_non_unitario_pieno = buffer_init(3);
     if(buffer_non_unitario_pieno!= NULL){
-        messaggio1 = msg_init("messaggio1");
-        messaggio2 = msg_init("messaggio2");
-        messaggio3 = msg_init("messaggio3");
+        messaggio1 = msg_init_string("messaggio1");
+        messaggio2 = msg_init_string("messaggio2");
+        messaggio3 = msg_init_string("messaggio3");
         put_bloccante(buffer_non_unitario_pieno, messaggio1);
         put_bloccante(buffer_non_unitario_pieno, messaggio2);
         put_bloccante(buffer_non_unitario_pieno, messaggio3);
@@ -299,17 +295,17 @@ int setup_buffer_non_unitario_pieno(){
 }
 int clean_buffer_non_unitario_pieno(){
     buffer_destroy(buffer_non_unitario_pieno);
-    msg_destroy(messaggio1);
-    msg_destroy(messaggio2);
-    msg_destroy(messaggio3);
+    msg_destroy_string(messaggio1);
+    msg_destroy_string(messaggio2);
+    msg_destroy_string(messaggio3);
     return 0;
 }
 /*(P>1; C=0; N>1) Produzione concorrente di molteplici messaggi in un buffer vuoto; il buffer si satura in corso VERSIONE BLOCCANTE */
 void test_produzione_concorrente_bloccante_molteplici_messaggi_buffer_non_unitario_vuoto(){
     pthread_t produttore1,produttore2, produttore3;
-    messaggio1 = msg_init("messaggio1");
-    messaggio2 = msg_init("messaggio2");
-    messaggio3 = msg_init("messaggio3");
+    messaggio1 = msg_init_string("messaggio1");
+    messaggio2 = msg_init_string("messaggio2");
+    messaggio3 = msg_init_string("messaggio3");
     pthread_create(&produttore1, NULL, (void*)&thread_put_bloccante_buffer_non_unitario_vuoto,messaggio1);
     pthread_create(&produttore2, NULL, (void*)&thread_put_bloccante_buffer_non_unitario_vuoto,messaggio2);
     pthread_create(&produttore3, NULL, (void*)&thread_put_bloccante_buffer_non_unitario_vuoto,messaggio3);
@@ -323,9 +319,9 @@ void test_produzione_concorrente_bloccante_molteplici_messaggi_buffer_non_unitar
 /*(P>1; C=0; N>1) Produzione concorrente di molteplici messaggi in un buffer vuoto; il buffer si satura in corso VERSIONE NON BLOCCANTE */
 void test_produzione_concorrente_non_bloccante_molteplici_messaggi_buffer_non_unitario_vuoto(){
     pthread_t produttore1,produttore2, produttore3;
-    messaggio1 = msg_init("messaggio1");
-    messaggio2 = msg_init("messaggio2");
-    messaggio3 = msg_init("messaggio3");
+    messaggio1 = msg_init_string("messaggio1");
+    messaggio2 = msg_init_string("messaggio2");
+    messaggio3 = msg_init_string("messaggio3");
     pthread_create(&produttore1, NULL, (void*)&thread_put_non_bloccante_buffer_non_unitario_vuoto,messaggio1);
     pthread_create(&produttore2, NULL, (void*)&thread_put_non_bloccante_buffer_non_unitario_vuoto,messaggio2);
     pthread_create(&produttore3, NULL, (void*)&thread_put_non_bloccante_buffer_non_unitario_vuoto,messaggio3);
@@ -414,9 +410,11 @@ int clean_buffer_non_unitario_vuoto(){
 
 /*(P>1; C>1; N>1) Consumazioni e produzioni concorrenti di molteplici messaggi in un buffer VERSIONE BLOCCANTE*/
 void test_produzione_consumazione_concorrente_bloccante_molteplici_messaggi_buffer_non_unitario_vuoto(){
+    clean_buffer_non_unitario_vuoto();
+    setup_buffer_non_unitario_vuoto();
     pthread_t produttore1,produttore2,consumatore1,consumatore2;
-    msg_t* messaggio1 = msg_init("produttore1");
-    msg_t* messaggio2 = msg_init("produttore2");
+    msg_t* messaggio1 = msg_init_string("produttore1");
+    msg_t* messaggio2 = msg_init_string("produttore2");
     msg_t* risposta1;
     msg_t* risposta2;
     pthread_create(&produttore1, NULL, (void*)&thread_put_bloccante_buffer_non_unitario_vuoto, messaggio1);
@@ -431,8 +429,8 @@ void test_produzione_consumazione_concorrente_bloccante_molteplici_messaggi_buff
     CU_ASSERT_STRING_EQUAL(risposta1->content,messaggio1->content);
     CU_ASSERT_STRING_EQUAL(risposta2->content,messaggio2->content);
     CU_ASSERT_EQUAL(buffer_non_unitario_vuoto->k, 0);
-    msg_destroy(messaggio1);
-    msg_destroy(messaggio2);
+    msg_destroy_string(messaggio1);
+    msg_destroy_string(messaggio2);
     
 }
 /*(P>1; C>1; N>1) Consumazioni e produzioni concorrenti di molteplici messaggi in un buffer VERSIONE NON BLOCCANTE*/
@@ -440,8 +438,8 @@ void test_produzione_consumazione_concorrente_non_bloccante_molteplici_messaggi_
     clean_buffer_non_unitario_vuoto();
     setup_buffer_non_unitario_vuoto();
     pthread_t produttore1,produttore2,consumatore1,consumatore2;
-    msg_t* messaggio1 = msg_init("produttore1");
-    msg_t* messaggio2 = msg_init("produttore2");
+    msg_t* messaggio1 = msg_init_string("produttore1");
+    msg_t* messaggio2 = msg_init_string("produttore2");
     msg_t* risposta1;
     msg_t* risposta2;
     pthread_create(&produttore1, NULL, (void*)&thread_put_non_bloccante_buffer_non_unitario_vuoto, messaggio1);
@@ -456,8 +454,8 @@ void test_produzione_consumazione_concorrente_non_bloccante_molteplici_messaggi_
     CU_ASSERT_STRING_EQUAL(messaggio1->content, risposta1->content);
     CU_ASSERT_PTR_EQUAL(risposta2, BUFFER_ERROR);
     CU_ASSERT_EQUAL(buffer_non_unitario_vuoto->k, 1);
-    msg_destroy(messaggio1);
-    msg_destroy(messaggio2);
+    msg_destroy_string(messaggio1);
+    msg_destroy_string(messaggio2);
 
 }
 int main(){
@@ -584,7 +582,7 @@ int main(){
         return CU_get_error();
     }
     /* add the tests to the suite */
-    if ((NULL == CU_add_test(pSuite,"test put_bloccante/get_bloccante da consumatori e produttori concorrenti su buffer non unitario vuoto",test_produzione_consumazione_concorrente_bloccante_molteplici_messaggi_buffer_non_unitario_vuoto))||(NULL == CU_add_test(pSuite,"test put_non_bloccante/get_non_bloccante da consumatori e produttoriconcorrenti su buffer non unitario vuoto",test_produzione_consumazione_concorrente_non_bloccante_molteplici_messaggi_buffer_non_unitario_vuoto))) {
+    if ((NULL == CU_add_test(pSuite,"test put_bloccante/get_bloccante da consumatori e produttori concorrenti su buffer non unitario vuoto",test_produzione_consumazione_concorrente_bloccante_molteplici_messaggi_buffer_non_unitario_vuoto))||(NULL == CU_add_test(pSuite,"test put_non_bloccante/get_non_bloccante da consumatori e produttori concorrenti su buffer non unitario vuoto",test_produzione_consumazione_concorrente_non_bloccante_molteplici_messaggi_buffer_non_unitario_vuoto))) {
         CU_cleanup_registry();
         return CU_get_error();
     }

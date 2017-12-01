@@ -16,10 +16,10 @@ typedef struct message {
     struct message * (*msg_copy)(struct message *); // creazione/copia msg
 }msg_t;
 
-msg_t* msg_init(void*); //viene creata una copia "privata" della stringa
+msg_t* msg_init_string(void*); //viene creata una copia "privata" della stringa
 
-void msg_destroy(msg_t*);
+void msg_destroy_string(msg_t*);
 
-msg_t* msg_copy(msg_t*);
+msg_t* msg_copy_string(msg_t*);
 
 #endif /* msg_h */
